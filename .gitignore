@@ -16,3 +16,6 @@ yarn-error.log*
 # Local test artifacts
 test.bmp
 album.html
+
+# Local documentation
+TODO.md
