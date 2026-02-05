@@ -1,5 +1,9 @@
 import sharp from 'sharp';
 import { ditherImage, ColorScheme, DitherMode } from '@opendisplay/epaper-dithering';
+import { create } from 'flat-cache';
+
+// Blocklist (videos, portrait photos, etc.)
+const blocklistCache = create({ cacheId: 'urlBlocklist', cacheDir: 'data' });
 
 
 // target dimensions for 7-inch e-Paper
@@ -8,17 +12,32 @@ const HEIGHT = 480;
 
 export async function processImage(imageUrl) {
   try {
+    // Check blocklist first
+    const inBlocklist = blocklistCache.getKey(imageUrl);
+    if (inBlocklist) {
+        console.log(`Skipping image: ${imageUrl} is in blocklist`);
+        return null;
+    }
+
+    // Check if it's a video
+    if (await isVideo(imageUrl)) {
+        console.log(`Skipping image: Detected ${imageUrl} as video/motion photo`);
+        blocklistCache.setKey(imageUrl, true);
+        blocklistCache.save(true);
+        return null;
+    }
+
     const response = await fetch(imageUrl);
     const arrayBuffer = await response.arrayBuffer();
     const inputBuffer = Buffer.from(arrayBuffer);
+    const image = sharp(inputBuffer);
     
     // Check orientation
-    const image = sharp(inputBuffer);
     const metadata = await image.metadata();
-
-    // TODO Only check rotation for heavy scraper
     if (metadata.height >= metadata.width) {
       console.log(`Skipping image: Portrait or square orientation (${metadata.width}x${metadata.height})`);
+      blocklistCache.setKey(imageUrl, true);
+      blocklistCache.save(true);
       return null;
     }
     
@@ -94,5 +113,19 @@ export async function processImage(imageUrl) {
   } catch (error) {
     console.error('Error processing image:', error);
     throw error;
+  }
+}
+
+async function isVideo(baseUrl) {
+  try {
+    // Attempt to access the video stream (Download Video)
+    // If this returns 200 OK, it's likely a video or a motion photo.
+    const response = await fetch(`${baseUrl}=dv`, { method: 'HEAD' });
+    if (response.ok) {
+      return true;
+    }
+    return false;
+  } catch (error) {
+    return false;
   }
 }

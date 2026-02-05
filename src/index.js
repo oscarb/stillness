@@ -34,7 +34,7 @@ app.get('/image', async (req, res) => {
       const url = urls[randomIndex];
       
       // Process
-      console.log(`Processing image...`);
+      console.log(`Processing image (attempt ${attempts + 1}/${maxAttempts})...`);
       let result = await processImage(url);
       
       if (result) {
