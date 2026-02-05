@@ -6,6 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --only=production
 
+# Install Playwright browsers and dependencies
+RUN npx playwright install --with-deps chromium
+
 # Copy source code
 COPY src ./src
 

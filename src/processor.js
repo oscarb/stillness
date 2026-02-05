@@ -12,10 +12,20 @@ export async function processImage(imageUrl) {
     const arrayBuffer = await response.arrayBuffer();
     const inputBuffer = Buffer.from(arrayBuffer);
     
+    // Check orientation
+    const image = sharp(inputBuffer);
+    const metadata = await image.metadata();
+
+    // TODO Only check rotation for heavy scraper
+    if (metadata.height >= metadata.width) {
+      console.log(`Skipping image: Portrait or square orientation (${metadata.width}x${metadata.height})`);
+      return null;
+    }
+    
     // Prepare image for dithering (Resize -> Raw RGBA)
     // The library expects an object with { width, height, data: Uint8ClampedArray }
     // We use 'ensureAlpha' to make sure we have 4 channels (RGBA) which is standard for pngs
-    const { data: rawBuffer, info } = await  sharp(inputBuffer)
+    const { data: rawBuffer, info } = await image
       .resize(WIDTH, HEIGHT, { fit: 'cover', position: 'center' })
       .ensureAlpha() 
       .raw()
@@ -74,6 +84,8 @@ export async function processImage(imageUrl) {
     })
     .toBuffer();
     
+    console.error('Processing complete!');
+
     return {
       data: pngBuffer,
       mimeType: 'image/png'
