@@ -56,8 +56,23 @@ export async function processImage(imageUrl) {
         data: new Uint8ClampedArray(rawBuffer)
     };
 
+    // Determine dithering mode from env
+    let ditherMode = DitherMode.STUCKI; // Default
+    if (process.env.DITHER_MODE) {
+        // Find matching key in DitherMode enum (case-insensitive)
+        const modeKey = Object.keys(DitherMode).find(key => key.toUpperCase() === process.env.DITHER_MODE.toUpperCase());
+        if (modeKey) {
+            ditherMode = DitherMode[modeKey];
+            console.log(`Using dithering mode: ${modeKey}`);
+        } else {
+            console.warn(`Invalid DITHER_MODE '${process.env.DITHER_MODE}', falling back to STUCKI`);
+        }
+    } else {
+        console.log('Using default dithering mode: STUCKI');
+    }
+
     // Apply Dithering using the library
-    const dithered = ditherImage(imageBuffer, ColorScheme.MONO, DitherMode.FLOYD_STEINBERG);
+    const dithered = ditherImage(imageBuffer, ColorScheme.MONO, ditherMode);
 
     // Calculate expected size
     const expectedSize = dithered.width * dithered.height;

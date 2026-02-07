@@ -7,6 +7,7 @@ services:
       - "3000:3000"
     environment:
       - SHARED_ALBUM_URL=${SHARED_ALBUM_URL}
+      - DITHER_MODE=${DITHER_MODE}
       - PORT=3000
     volumes:
       - ./data:/app/data # For potential persistence if we moved cache to disk, though currently in-memory.
