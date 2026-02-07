@@ -22,3 +22,6 @@ TODO.md
 
 # Application Data
 data/
+
+# Agent rules
+.agent/

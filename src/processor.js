@@ -7,8 +7,9 @@ const blocklistCache = create({ cacheId: 'urlBlocklist', cacheDir: 'data' });
 
 
 // target dimensions for 7-inch e-Paper
-const WIDTH = 800;
-const HEIGHT = 480;
+// target dimensions for e-Paper (configurable)
+const WIDTH = parseInt(process.env.IMAGE_WIDTH) || 800;
+const HEIGHT = parseInt(process.env.IMAGE_HEIGHT) || 480;
 
 export async function processImage(imageUrl) {
   try {
