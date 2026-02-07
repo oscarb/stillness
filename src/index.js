@@ -80,8 +80,20 @@ app.get('/image', async (req, res) => {
 
     if (fs.existsSync(NEXT_IMAGE_PATH)) {
         const fileContent = fs.readFileSync(NEXT_IMAGE_PATH);
+        const stats = fs.statSync(NEXT_IMAGE_PATH);
+        const lastModified = stats.mtime.toUTCString();
+        const ifModifiedSince = req.headers['if-modified-since'];
+
+        if (lastModified === ifModifiedSince) {
+            res.status(304).send();
+            return;
+        }        
+ 
         res.set('Content-Type', 'image/png');
-        res.set('Cache-Control', 'no-store'); 
+        res.set('Cache-Control', 'no-cache');
+        res.set('ETag', `"${stats.size}-${stats.mtime.getTime()}"`);
+        res.set('Last-Modified', lastModified);
+
         res.send(fileContent);
 
         // Trigger background generation for the NEXT request
