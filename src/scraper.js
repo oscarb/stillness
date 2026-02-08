@@ -47,8 +47,9 @@ export async function getAlbumImages(albumUrl) {
       // If we validly got < 300, we proceed. 
       if (images.length < 300) {
           // Success! Map to URLs and return.
+          const landscapeOnly = process.env.LANDSCAPE_ONLY !== 'false'; // Default to true
           const urls = images
-            .filter(image => image.width > image.height) // Filter only landscape images
+            .filter(image => landscapeOnly ? image.width > image.height : true)
             .map(image => image.url);
           
           console.log(`Using ${urls.length} images from lightweight fetch.`);

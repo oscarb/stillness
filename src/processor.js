@@ -35,7 +35,9 @@ export async function processImage(imageUrl) {
     
     // Check orientation
     const metadata = await image.metadata();
-    if (metadata.height >= metadata.width) {
+    const landscapeOnly = process.env.LANDSCAPE_ONLY !== 'false'; // Default to true
+
+    if (landscapeOnly && metadata.height >= metadata.width) {
       console.log(`Skipping image: Portrait or square orientation (${metadata.width}x${metadata.height})`);
       blocklistCache.setKey(imageUrl, true);
       blocklistCache.save(true);
@@ -64,12 +66,9 @@ export async function processImage(imageUrl) {
         const modeKey = Object.keys(DitherMode).find(key => key.toUpperCase() === process.env.DITHER_MODE.toUpperCase());
         if (modeKey) {
             ditherMode = DitherMode[modeKey];
-            console.log(`Using dithering mode: ${modeKey}`);
         } else {
             console.warn(`Invalid DITHER_MODE '${process.env.DITHER_MODE}', falling back to STUCKI`);
         }
-    } else {
-        console.log('Using default dithering mode: STUCKI');
     }
 
     // Apply Dithering using the library

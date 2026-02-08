@@ -10,6 +10,7 @@ services:
       - DITHER_MODE=${DITHER_MODE}
       - IMAGE_WIDTH=${IMAGE_WIDTH}
       - IMAGE_HEIGHT=${IMAGE_HEIGHT}
+      - LANDSCAPE_ONLY=${LANDSCAPE_ONLY}
       - PORT=3000
     volumes:
       - ./data:/app/data # For potential persistence if we moved cache to disk, though currently in-memory.
