@@ -28,6 +28,7 @@ if (!fs.existsSync(path.dirname(NEXT_IMAGE_PATH))) {
 let lastProcessedUrl = null;
 
 async function generateNextImage() {
+    const startTime = Date.now();
     console.log('Generating next image...');
     try {
         const urls = await getAlbumImages(ALBUM_URL);
@@ -75,8 +76,7 @@ async function generateNextImage() {
         // Write to temp file then rename for atomic update
         fs.writeFileSync(TEMP_NEXT_IMAGE_PATH, pngBuffer);
         fs.renameSync(TEMP_NEXT_IMAGE_PATH, NEXT_IMAGE_PATH);
-        console.log('Next image generated and saved to ' + NEXT_IMAGE_PATH);
-
+        console.log('Next image generated and saved to ' + NEXT_IMAGE_PATH + ' (took ' + (Date.now() - startTime) + 'ms)');
     } catch (error) {
         console.error('Error generating next image:', error);
     }
@@ -84,6 +84,11 @@ async function generateNextImage() {
 
 app.get('/image', async (req, res) => {
   try {
+    const startTime = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - startTime;
+        console.log(`Request processed in ${duration}ms`);
+    });
     console.log('Request received for /image');
 
     // Check if next image exists
