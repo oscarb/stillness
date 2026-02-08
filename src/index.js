@@ -24,6 +24,9 @@ if (!fs.existsSync(path.dirname(NEXT_IMAGE_PATH))) {
     fs.mkdirSync(path.dirname(NEXT_IMAGE_PATH), { recursive: true });
 }
 
+
+let lastProcessedUrl = null;
+
 async function generateNextImage() {
     console.log('Generating next image...');
     try {
@@ -37,16 +40,27 @@ async function generateNextImage() {
         const maxAttempts = 10;
         let pngBuffer;
 
+        if(urls.length == 0) {
+            console.error('No URLs found in album');
+            return;
+        }
+
         while (attempts < maxAttempts) {
             const randomIndex = Math.floor(Math.random() * urls.length);
             const url = urls[randomIndex];
-            
+
+            if(url === lastProcessedUrl && urls.length > 1) {
+                console.log('Skipping image (same as last processed)');
+                continue;
+            }
+
             // Process
             console.log(`Processing image (attempt ${attempts + 1}/${maxAttempts})...`);
             let result = await processImage(url);
             
             if (result) {
                 pngBuffer = result.data;
+                lastProcessedUrl = url;
                 break;
             }
             
