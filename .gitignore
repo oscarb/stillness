@@ -25,3 +25,6 @@ data/
 
 # Agent rules
 .agent/
+
+# Test scripts
+scripts/test-crop-strategies.js

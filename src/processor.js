@@ -11,7 +11,7 @@ const blocklistCache = create({ cacheId: 'urlBlocklist', cacheDir: 'data' });
 const WIDTH = parseInt(process.env.IMAGE_WIDTH) || 800;
 const HEIGHT = parseInt(process.env.IMAGE_HEIGHT) || 480;
 
-export async function processImage(imageUrl) {
+export async function processImage(imageUrl, options = {}) {
   try {
     // Check blocklist first
     const inBlocklist = blocklistCache.getKey(imageUrl);
@@ -44,11 +44,33 @@ export async function processImage(imageUrl) {
       return null;
     }
     
-    // Prepare image for dithering (Resize -> Raw RGBA)
-    // The library expects an object with { width, height, data: Uint8ClampedArray }
-    // We use 'ensureAlpha' to make sure we have 4 channels (RGBA) which is standard for pngs
+    // Configurable cropping strategy
+    // Options: 'ATTENTION', 'ENTROPY', 'CENTER', 'TOP', 'RIGHT', 'BOTTOM', 'LEFT' (case-insensitive)
+    // Default to ENV or 'CENTER'
+    const strategyName = (options.cropStrategy || process.env.CROP_STRATEGY || 'CENTER').toUpperCase();
+
+    // Map strategy name to sharp position/strategy
+    let resizeOptions = {
+        fit: 'cover',
+        position: 'center' // Default
+    };
+
+    // Mapping for static positions
+    const staticPositions = ['CENTER', 'TOP', 'RIGHT', 'BOTTOM', 'LEFT', 'NORTH', 'NORTHEAST', 'EAST', 'SOUTHEAST', 'SOUTH', 'SOUTHWEST', 'WEST', 'NORTHWEST'];
+    
+    if (staticPositions.includes(strategyName)) {
+        resizeOptions.position = strategyName.toLowerCase();
+    } else if (strategyName === 'ENTROPY') {
+        resizeOptions.position = sharp.strategy.entropy;
+    } else if (strategyName === 'ATTENTION') {
+        resizeOptions.position = sharp.strategy.attention;
+    } else {
+        console.warn(`Unknown CROP_STRATEGY '${strategyName}', falling back to CENTER`);
+    }
+
+    // Apply resize with calculated options
     const { data: rawBuffer, info } = await image
-      .resize(WIDTH, HEIGHT, { fit: 'cover', position: 'center' })
+      .resize(WIDTH, HEIGHT, resizeOptions)
       .ensureAlpha() 
       .raw()
       .toBuffer({ resolveWithObject: true });
