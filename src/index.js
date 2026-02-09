@@ -27,7 +27,15 @@ if (!fs.existsSync(path.dirname(NEXT_IMAGE_PATH))) {
 
 let lastProcessedUrl = null;
 
+// Track active generation
+let isGenerating = false;
+let isShuttingDown = false;
+
 async function generateNextImage() {
+    if (isShuttingDown) return;
+    if (isGenerating) return; // Prevent concurrent generations
+
+    isGenerating = true;
     const startTime = Date.now();
     console.log('Generating next image...');
     try {
@@ -46,7 +54,7 @@ async function generateNextImage() {
             return;
         }
 
-        while (attempts < maxAttempts) {
+        while (attempts < maxAttempts && !isShuttingDown) {
             const randomIndex = Math.floor(Math.random() * urls.length);
             const url = urls[randomIndex];
 
@@ -68,6 +76,11 @@ async function generateNextImage() {
             attempts++;
         }
 
+        if (isShuttingDown) {
+            console.log('Generation aborted due to shutdown.');
+            return;
+        }
+
         if (!pngBuffer) {
             console.error('Failed to generate next image after max attempts.');
             return;
@@ -79,6 +92,8 @@ async function generateNextImage() {
         console.log('Next image generated and saved to ' + NEXT_IMAGE_PATH + ' (took ' + (Date.now() - startTime) + 'ms)');
     } catch (error) {
         console.error('Error generating next image:', error);
+    } finally {
+        isGenerating = false;
     }
 }
 
@@ -117,7 +132,9 @@ app.get('/image', async (req, res) => {
 
         // Trigger background generation for the NEXT request
         // Fire and forget
-        generateNextImage(); 
+        if (!isShuttingDown) {
+            generateNextImage(); 
+        }
     } else {
         res.status(500).send('Failed to serve image');
     }
@@ -128,7 +145,7 @@ app.get('/image', async (req, res) => {
   }
 });
 
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Monitoring album: ${ALBUM_URL}`);
 
@@ -140,3 +157,35 @@ app.listen(PORT, async () => {
       console.log('Initial image already exists.');
   }
 });
+
+function gracefulShutdown(signal) {
+    console.log(`${signal} signal received: closing HTTP server`);
+    isShuttingDown = true;
+    
+    server.close(() => {
+        console.log('HTTP server closed');
+        
+        if (isGenerating) {
+            console.log('Waiting for ongoing image generation to complete...');
+            const interval = setInterval(() => {
+                if (!isGenerating) {
+                    clearInterval(interval);
+                    console.log('Image generation completed. Exiting.');
+                    process.exit(0);
+                }
+            }, 100);
+        } else {
+            console.log('No partial generation active. Exiting.');
+            process.exit(0);
+        }
+    });
+    
+    // Force shutdown after timeout
+    setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 10000); // 10s timeout
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
