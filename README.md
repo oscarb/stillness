@@ -69,6 +69,8 @@ Your service should now be running at `http://localhost:3000/image`.
 3. Start the server:
    ```bash
    npm start
+   # or for development with auto-reload:
+   npm run dev
    ```
 
 ## 🛠️ Configuration
