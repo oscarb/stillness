@@ -28,14 +28,20 @@ export async function processImage(imageUrl, options = {}) {
         return null;
     }
 
-    const response = await fetch(imageUrl);
+    const landscapeOnly = process.env.LANDSCAPE_ONLY !== 'false'; // Default to true
+
+    const longestSide = landscapeOnly 
+        ? Math.max(WIDTH, Math.round(HEIGHT * 16/9)) // Ensure up to 16:9 ratio fill screen height
+        : Math.max(WIDTH, HEIGHT);
+    const resizedImageUrl = `${imageUrl}=s${longestSide}`;
+
+    const response = await fetch(resizedImageUrl);
     const arrayBuffer = await response.arrayBuffer();
     const inputBuffer = Buffer.from(arrayBuffer);
     const image = sharp(inputBuffer);
     
     // Check orientation
     const metadata = await image.metadata();
-    const landscapeOnly = process.env.LANDSCAPE_ONLY !== 'false'; // Default to true
 
     if (landscapeOnly && metadata.height >= metadata.width) {
       console.log(`Skipping image: Portrait or square orientation (${metadata.width}x${metadata.height})`);
